@@ -1,0 +1,9 @@
+.gradle/
+build/
+local.properties
+*.apk
+.idea/
+*.iml
+.claude/
+.agents/
+skills-lock.json
