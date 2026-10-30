@@ -2,6 +2,24 @@
 
 Launcher leve para o projetor **HY300** (Android 9, 1 GB de RAM). App nativo em Java puro, sem nenhuma dependência: APK de ~180 KB e ~57 MB de RAM em uso.
 
+## Telas
+
+| Início | Continuar assistindo (card focado alarga) |
+|---|---|
+| ![Início](docs/telas/1-inicio.jpg) | ![Continuar assistindo](docs/telas/2-continuar.jpg) |
+
+| Seus apps | OK segurado num app |
+|---|---|
+| ![Seus apps](docs/telas/3-seus-apps.jpg) | ![Menu do app](docs/telas/4-menu-app.jpg) |
+
+| Aba Apps | Aba Projetor |
+|---|---|
+| ![Aba Apps](docs/telas/5-aba-apps.jpg) | ![Aba Projetor](docs/telas/6-aba-projetor.jpg) |
+
+| Painel rápido (botão Menu) |
+|---|
+| ![Painel rápido](docs/telas/7-painel-rapido.jpg) |
+
 ## O que faz
 
 - **Início:** destaque do Jellyfin (último assistido + sugestão), *Continuar assistindo*, *Seus apps* e *Adicionados recentemente*. Cards estilo Apple TV: capa vertical parada, alarga em 16:9 no foco.
