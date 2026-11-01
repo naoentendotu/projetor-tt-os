@@ -37,6 +37,9 @@ public class KeyService extends AccessibilityService {
     private static final Set<String> SYSTEM = new HashSet<>(Arrays.asList(
             "android", "com.android.systemui", "com.android.packageinstaller", "com.google.android.packageinstaller",
             "com.android.inputmethod.latin"));
+    /** Navegador e WebView: login (OAuth) abre aqui e volta para o app; encerrar o app nessa troca quebra o login. */
+    private static final Set<String> BROWSERS = new HashSet<>(Arrays.asList(
+            "com.android.chrome", "com.google.android.webview", "com.android.webview", "com.android.browser"));
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService bg = Executors.newSingleThreadExecutor();
@@ -76,7 +79,7 @@ public class KeyService extends AccessibilityService {
         if (panel != null && !now.equals(getPackageName())) closePanel();
         if (prev.equals(getPackageName())) main.postDelayed(this::reassertHome, 2000);
         // saiu de um app para a tela inicial ou para outro app: encerra o anterior para liberar RAM
-        else if (!prev.isEmpty() && !SYSTEM.contains(prev) && !SYSTEM.contains(now)) main.postDelayed(() -> stop(prev), 1500);
+        else if (!prev.isEmpty() && !SYSTEM.contains(prev) && !SYSTEM.contains(now) && !BROWSERS.contains(now)) main.postDelayed(() -> stop(prev), 1500);
     }
 
     private void stop(String pkg) {
