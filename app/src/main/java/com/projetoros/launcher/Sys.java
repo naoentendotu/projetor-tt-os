@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 final class Sys {
     private static final int KEYSTONE_STEP = 4;
     private static final String KS = "persist.sys.keystone.";
+    private int[][] ksRaw;
     private static Sys instance;
 
     interface Done {
@@ -293,18 +294,13 @@ final class Sys {
             for (String c : corner) cmd.append("setprop ").append(KS).append(c).append(" $(getprop ").append(KS).append(c).append(".init.xy); ");
         } else {
             if (arg == null || !arg.matches("[vhz][+-]")) throw new IOException("ajuste inválido");
-            String[] v = adb.shell("getprop " + KS + "lt; getprop " + KS + "rt; getprop " + KS + "lb; getprop " + KS + "rb").trim().split("\\s+");
             // para dentro da imagem, cada canto anda neste sentido: lt(+x,-y) rt(-x,-y) lb(+x,+y) rb(-x,+y)
             int[][] in = {{1, -1}, {-1, -1}, {1, 1}, {-1, 1}};
+            if (ksRaw == null) ksRaw = readKeystone();
             int[][] p = new int[4][2];
-            try {
-                for (int i = 0; i < 4; i++) {
-                    String[] xy = v[i].split(",");
-                    p[i][0] = Integer.parseInt(xy[0].trim()) * in[i][0];
-                    p[i][1] = Integer.parseInt(xy[1].trim()) * in[i][1];
-                }
-            } catch (RuntimeException e) {
-                throw new IOException("keystone não encontrado neste firmware");
+            for (int i = 0; i < 4; i++) {
+                p[i][0] = ksRaw[i][0] * in[i][0];
+                p[i][1] = ksRaw[i][1] * in[i][1];
             }
             int d = arg.charAt(1) == '+' ? KEYSTONE_STEP : -KEYSTONE_STEP;
             switch (arg.charAt(0)) {
@@ -324,10 +320,33 @@ final class Sys {
             }
             for (int i = 0; i < 4; i++) {
                 int x = Math.max(0, Math.min(400, p[i][0])) * in[i][0], y = Math.max(0, Math.min(250, p[i][1])) * in[i][1];
+                ksRaw[i][0] = x;
+                ksRaw[i][1] = y;
                 cmd.append("setprop ").append(KS).append(corner[i]).append(' ').append(x).append(',').append(y).append("; ");
             }
         }
-        adb.shell(cmd + "setprop " + KS + "update 1");
+        try {
+            adb.shell(cmd + "setprop " + KS + "update 1");
+        } catch (IOException e) {
+            ksRaw = null; // não sabemos o que ficou gravado: ler de novo no próximo toque
+            throw e;
+        }
+        if ("reset".equals(arg)) ksRaw = null; // voltou ao valor de fábrica
         return "";
+    }
+
+    private int[][] readKeystone() throws IOException {
+        String[] v = adb.shell("getprop " + KS + "lt; getprop " + KS + "rt; getprop " + KS + "lb; getprop " + KS + "rb").trim().split("\\s+");
+        int[][] r = new int[4][2];
+        try {
+            for (int i = 0; i < 4; i++) {
+                String[] xy = v[i].split(",");
+                r[i][0] = Integer.parseInt(xy[0].trim());
+                r[i][1] = Integer.parseInt(xy[1].trim());
+            }
+        } catch (RuntimeException e) {
+            throw new IOException("keystone não encontrado neste firmware");
+        }
+        return r;
     }
 }
