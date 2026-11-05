@@ -26,6 +26,7 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -62,7 +63,7 @@ public class MainActivity extends TvActivity {
     private Jellyfin jf;
     private Apps apps;
     private SharedPreferences prefs;
-    private String appsSig = "", current = "home", moving, menuFor;
+    private String appsSig = "", current = "home", moving;
     private long lastHome, lastBack;
     private final Map<View, String> cardPkg = new HashMap<>();
 
@@ -76,8 +77,8 @@ public class MainActivity extends TvActivity {
     private TextView heroLabel, heroTitle, heroText, heroPlay, heroNext, clock, menuTitle, loginErr, bigClock, bigDate, bigInfo;
     private TextView jfAccount;
     private EditText jfServer, jfUser, jfPass;
-    private QuickPanel quick;
-    private View quickReturn;
+    /** Onde o foco volta ao fechar o menu (card do app ou linha do ajuste). */
+    private View menuReturn;
 
     private static final class Hero {
         String label, title, text, image, button;
@@ -296,7 +297,12 @@ public class MainActivity extends TvActivity {
         menu.addView(menuTitle);
         menuItems = new LinearLayout(this);
         menuItems.setOrientation(LinearLayout.VERTICAL);
-        menu.addView(menuItems);
+        // listas longas (apps ao ligar, papéis de parede) rolam; o ScrollView segue o foco sozinho
+        ScrollView menuScroll = new ScrollView(this);
+        menuScroll.setFocusable(false);
+        menuScroll.setVerticalScrollBarEnabled(false);
+        menuScroll.addView(menuItems);
+        menu.addView(menuScroll);
         menuLayer.addView(menu, new FrameLayout.LayoutParams(Ui.px(420), Ui.WRAP, Gravity.CENTER));
 
         // recentes
@@ -339,11 +345,6 @@ public class MainActivity extends TvActivity {
         lb.addView(cancel, new LinearLayout.LayoutParams(Ui.WRAP, Ui.px(46)));
         form.addView(lb);
         loginLayer.addView(form, new FrameLayout.LayoutParams(Ui.px(520), Ui.WRAP, Gravity.CENTER));
-
-        // painel rápido
-        quick = new QuickPanel(this, this::closeQuick, false);
-        quick.setVisibility(View.GONE);
-        root.addView(quick, new FrameLayout.LayoutParams(Ui.px(QuickPanel.WIDTH), Ui.MATCH, Gravity.END));
 
         // descanso: relógio grande, data e status em baixo brilho
         dim = layer(0xe0000000);
@@ -419,7 +420,7 @@ public class MainActivity extends TvActivity {
         settingsList.setClipChildren(false);
         projView.addView(settingsList, new LinearLayout.LayoutParams(Ui.px(760), Ui.WRAP));
 
-        // ajustes do próprio projetor primeiro (é a aba dele); o botão Menu abre os mesmos por cima de qualquer app
+        // ajustes do próprio projetor primeiro (é a aba dele)
         section("IMAGEM");
         adjust("Trapézio vertical", 'v');
         adjust("Trapézio horizontal", 'h');
@@ -549,13 +550,16 @@ public class MainActivity extends TvActivity {
         return row;
     }
 
-    /** Escolha "‹ valor ›": ← → trocam, OK avança. */
+    /** Até 2 opções: "‹ valor ›", ← → trocam, OK alterna. Mais que 2: OK abre a lista e aplica a escolhida. */
     private Choice choice(String label, String[] names, int idx, java.util.function.IntConsumer apply) {
         Choice c = new Choice();
         c.names = names;
         c.idx = Math.max(0, Math.min(idx, names.length - 1));
         c.apply = apply;
-        LinearLayout row = addSetting(label, () -> step(c, 1));
+        LinearLayout row = addSetting(label, () -> {
+            if (c.names.length > 2) pick(label, c);
+            else step(c, 1);
+        });
         c.value = Ui.detail(row);
         showChoice(c);
         choices.put(row, c);
@@ -576,7 +580,22 @@ public class MainActivity extends TvActivity {
     }
 
     private void showChoice(Choice c) {
-        c.value.setText("‹   " + c.names[c.idx] + "   ›");
+        c.value.setText(c.names.length > 2 ? c.names[c.idx] + "   ›" : "‹   " + c.names[c.idx] + "   ›");
+    }
+
+    /** Lista de opções na camada do menu; a atual vem marcada e focada. */
+    private void pick(String label, Choice c) {
+        menuReturn = getCurrentFocus();
+        menuTitle.setText(label);
+        menuItems.removeAllViews();
+        for (int i = 0; i < c.names.length; i++) {
+            int n = i;
+            Ui.detail(menuItem(c.names[i], () -> {
+                if (n != c.idx) step(c, n - c.idx);
+            })).setText(i == c.idx ? "✓" : "");
+        }
+        menuLayer.setVisibility(View.VISIBLE);
+        focus(Nav.items(Nav.rows(menuLayer).get(c.idx)).get(0));
     }
 
     /** Ao ligar: tela inicial, HDMI e os apps (a lista chega depois que os apps carregam). */
@@ -722,7 +741,6 @@ public class MainActivity extends TvActivity {
         if (menuLayer.getVisibility() == View.VISIBLE) return menuLayer;
         if (recentsLayer.getVisibility() == View.VISIBLE) return recentsLayer;
         if (loginLayer.getVisibility() == View.VISIBLE) return loginLayer;
-        if (quick.getVisibility() == View.VISIBLE) return quick;
         return root;
     }
 
@@ -753,11 +771,11 @@ public class MainActivity extends TvActivity {
             return true;
         }
         Choice c = choices.get(focused);
-        if (c != null && dx != 0) {
+        if (c != null && dx != 0 && c.names.length <= 2) {
             step(c, dx);
             return true;
         }
-        return quick.getVisibility() == View.VISIBLE && quick.arrow(focused, dx);
+        return false;
     }
 
     @Override
@@ -766,12 +784,6 @@ public class MainActivity extends TvActivity {
         if (pkg == null) return false;
         openMenu(pkg);
         return true;
-    }
-
-    @Override
-    protected void onMenuKey() {
-        if (quick.getVisibility() == View.VISIBLE) closeQuick();
-        else openQuick();
     }
 
     @Override
@@ -788,7 +800,6 @@ public class MainActivity extends TvActivity {
         if (moving != null) endMove();
         else if (menuLayer.getVisibility() == View.VISIBLE) closeMenu();
         else if (recentsLayer.getVisibility() == View.VISIBLE) closeRecents();
-        else if (quick.getVisibility() == View.VISIBLE) closeQuick();
         else if (loginLayer.getVisibility() == View.VISIBLE) closeLogin();
         else if (!current.equals("home")) {
             show("home");
@@ -807,7 +818,6 @@ public class MainActivity extends TvActivity {
         menuLayer.setVisibility(View.GONE);
         recentsLayer.setVisibility(View.GONE);
         loginLayer.setVisibility(View.GONE);
-        quick.setVisibility(View.GONE);
     }
 
     /* ---------- apps ---------- */
@@ -884,7 +894,7 @@ public class MainActivity extends TvActivity {
     private void openMenu(String pkg) {
         Apps.App a = apps.find(pkg);
         if (a == null) return;
-        menuFor = pkg;
+        menuReturn = cardOf(pkg);
         menuTitle.setText(a.name);
         menuItems.removeAllViews();
         boolean isHidden = apps.hidden.contains(pkg);
@@ -910,18 +920,19 @@ public class MainActivity extends TvActivity {
         focus(Nav.items(Nav.rows(menuLayer).get(0)).get(0));
     }
 
-    private void menuItem(String label, Runnable action) {
+    private LinearLayout menuItem(String label, Runnable action) {
         LinearLayout it = Ui.item(this, label, null);
         it.setOnClickListener(v -> {
             closeMenu();
             action.run();
         });
         menuItems.addView(Ui.rowOf(this, it, 50));
+        return it;
     }
 
     private void closeMenu() {
         menuLayer.setVisibility(View.GONE);
-        focus(cardOf(menuFor));
+        focus(menuReturn);
     }
 
     private void startMove(String pkg) {
@@ -998,22 +1009,6 @@ public class MainActivity extends TvActivity {
     private void closeRecents() {
         recentsLayer.setVisibility(View.GONE);
         focus(current.equals("home") ? heroPlay : currentTab());
-    }
-
-    /* ---------- painel rápido ---------- */
-
-    private void openQuick() {
-        quickReturn = getCurrentFocus();
-        quick.setVisibility(View.VISIBLE);
-        quick.setTranslationX(Ui.px(QuickPanel.WIDTH));
-        quick.animate().translationX(0).setDuration(200).start();
-        quick.refresh();
-        focus(quick.first());
-    }
-
-    private void closeQuick() {
-        quick.setVisibility(View.GONE);
-        focus(quickReturn);
     }
 
     /* ---------- descanso ---------- */

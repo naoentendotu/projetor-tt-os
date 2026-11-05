@@ -43,9 +43,6 @@ abstract class TvActivity extends Activity {
         return false;
     }
 
-    protected void onMenuKey() {
-    }
-
     /** Qualquer tecla apertada; true engole a tecla (ex.: só acordar do descanso). */
     protected boolean onAnyKey() {
         return false;
@@ -74,9 +71,6 @@ abstract class TvActivity extends Activity {
         View f = getCurrentFocus();
         boolean typing = f instanceof EditText;
         switch (code) {
-            case KeyEvent.KEYCODE_MENU:
-                if (down && e.getRepeatCount() == 0) onMenuKey();
-                return true;
             case KeyEvent.KEYCODE_DPAD_UP:
             case KeyEvent.KEYCODE_DPAD_DOWN:
                 if (down) move(code == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1, 0);

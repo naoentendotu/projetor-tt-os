@@ -156,7 +156,7 @@ final class Sys {
         toast("Entrada HDMI não encontrada");
     }
 
-    /** Temperatura, rede e áudio, para o painel rápido e o descanso. */
+    /** Temperatura, rede e áudio, para a aba do projetor e o descanso. */
     Status status() {
         Status s = new Status();
         try (BufferedReader r = new BufferedReader(new FileReader("/sys/class/thermal/thermal_zone0/temp"))) {

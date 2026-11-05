@@ -16,17 +16,13 @@ Launcher leve para o projetor **HY300** (Android 9, 1 GB de RAM). App nativo em 
 |---|---|
 | ![Aba Apps](docs/telas/5-aba-apps.jpg) | ![Aba Projetor](docs/telas/6-aba-projetor.jpg) |
 
-| Painel rápido (botão Menu) |
-|---|
-| ![Painel rápido](docs/telas/7-painel-rapido.jpg) |
-
 ## O que faz
 
 - **Início:** destaque do Jellyfin (último assistido + sugestão), *Continuar assistindo*, *Seus apps* e *Adicionados recentemente*. Cards estilo Apple TV: capa vertical parada, alarga em 16:9 no foco.
 - **Apps:** grade com todos os apps; os ocultos ficam no fim.
-- **Projetor:** imagem (trapézio vertical/horizontal e zoom ao vivo), áudio (saída e modo noturno), rede, liberar memória, aparência, app ao ligar, conta do Jellyfin e backup.
+- **Projetor:** imagem (trapézio vertical/horizontal e zoom ao vivo), áudio (saída e modo noturno), rede, liberar memória, aparência, app ao ligar, conta do Jellyfin e backup. Ajustes com mais de 2 opções abrem uma lista; OK aplica a escolhida.
 - **Jellyfin:** "Assistir" toca no player do próprio app Jellyfin para TV, de onde parou (comando *PlayNow* de sessão remota).
-- **Controle:** navegação cíclica; OK segurado num app → mover, favoritar, ocultar, forçar parada, informações; Home duas vezes → recentes; Menu → painel rápido por cima de qualquer app.
+- **Controle:** navegação cíclica; OK segurado num app → mover, favoritar, ocultar, forçar parada, informações; Home duas vezes → recentes.
 - **RAM:** ao sair de um app para o Início ou outro app, o app anterior é encerrado.
 - **Descanso:** após 10 min sem uso, escurece e mostra um relógio grande.
 
@@ -40,9 +36,9 @@ Launcher leve para o projetor **HY300** (Android 9, 1 GB de RAM). App nativo em 
 | `Apps` | Lista de apps, capas, ordem, favoritos e ocultos |
 | `Jellyfin` / `PlayService` | Cliente do servidor e reprodução no app Jellyfin |
 | `Sys` / `AdbSelf` | Comandos de sistema pelo ADB local (keystone, forçar parada, recentes) |
-| `KeyService` / `QuickPanel` | Serviço de acessibilidade: Home, Menu, painel em camada e encerramento de apps |
+| `KeyService` | Serviço de acessibilidade: Home e encerramento de apps |
 
-O firmware do HY300 encerra o app da frente sempre que outra tela abre e, com isso, apaga a tela inicial padrão. Por isso o `KeyService` roda em processo próprio (`:keys`): intercepta o Home, refaz a preferência de tela inicial e desenha o painel como camada, sem abrir tela nova.
+O firmware do HY300 encerra o app da frente sempre que outra tela abre e, com isso, apaga a tela inicial padrão. Por isso o `KeyService` roda em processo próprio (`:keys`): intercepta o Home, refaz a preferência de tela inicial.
 
 ## Compilar e instalar
 
